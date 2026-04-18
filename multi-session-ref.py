@@ -29,8 +29,21 @@ from supabase import Client, create_client
 # 경로 · 환경
 # ---------------------------------------------------------------------------
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-LOG_DIR = REPO_ROOT / "logs"
-LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _resolve_log_dir() -> Path:
+    """로컬은 저장소 logs/, Streamlit Cloud 등은 /tmp 등 쓰기 가능한 경로 사용."""
+    preferred = REPO_ROOT / "logs"
+    try:
+        preferred.mkdir(parents=True, exist_ok=True)
+        return preferred
+    except (PermissionError, OSError):
+        fallback = Path(tempfile.gettempdir()) / "multi_session_rag_logs"
+        fallback.mkdir(parents=True, exist_ok=True)
+        return fallback
+
+
+LOG_DIR = _resolve_log_dir()
 LOG_FILE = LOG_DIR / f"chatbot_{datetime.now():%Y%m%d}.log"
 
 MODEL_NAME = "gpt-4o-mini"
